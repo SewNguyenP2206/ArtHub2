@@ -1,0 +1,269 @@
+version: '3'
+services:
+  sql-server-2019-container:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Phu@123456789
+    volumes:
+      - accountDBVolumn:/var/opt/mssql
+    ports:
+      - "1435:1433"
+    networks:
+      - backend
+
+#  mongo:
+#    container_name: mongo
+#    image: mongo:4.4.14-rc0-focal
+#    restart: always
+#    ports:
+#      - "27017:27017"
+#    expose:
+#      - "27017"
+#
+#  postgres-account:
+#    container_name: postgres-order
+#    image: postgres
+#    environment:
+#      POSTGRES_DB: AccountDatabase
+#      POSTGRES_USER: phu
+#      POSTGRES_PASSWORD: Phu0005l5!
+#      PGDATA: /data/postgres
+#    volumes:
+#      - ./postgres-order:/data/postgres
+#    expose:
+#      - "5431"
+#    ports:
+#      - "5431:5431"
+#    command: -p 5431
+#    restart: always
+
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.1
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - backend
+
+  broker:
+    image: confluentinc/cp-kafka:7.0.1
+    container_name: broker
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - backend
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - backend
+
+  discovery-service:
+    image: sewnguyenp2206/discovery-service:latest
+    container_name: discovery-service
+    ports:
+      - "8761:8761"
+    depends_on:
+        - zipkin
+    networks:
+      - backend
+
+  api-gateway:
+    image: sewnguyenp2206/api-gateway:latest
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    expose:
+      - "8181"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - zipkin
+      - discovery-service
+    networks:
+      - backend
+
+  authentication-service:
+    image: sewnguyenp2206/authentication-service:latest
+    container_name: authentication-service
+    ports:
+      - "8111:8111"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+  account-service:
+    image: sewnguyenp2206/account-service:latest
+    container_name: account-service
+    ports:
+      - "8082:8082"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+  role-service:
+    image: sewnguyenp2206/role-service:latest
+    container_name: role-service
+    ports:
+      - "8083:8083"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+  category-service:
+    image: sewnguyenp2206/category-service:latest
+    container_name: category-service
+    ports:
+      - "8087:8087"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+  categorycourse-service:
+    image: sewnguyenp2206/categorycourse-service:latest
+    container_name: categorycourse-service
+    ports:
+      - "8086:8086"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+  course-service:
+    image: sewnguyenp2206/course-service:latest
+    container_name: course-service
+    ports:
+      - "8081:8081"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+  courserate-service:
+    image: sewnguyenp2206/courserate-service:latest
+    container_name: courserate-service
+    ports:
+      - "8088:8088"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+  image-service:
+    image: sewnguyenp2206/image-service:latest
+    container_name: image-service
+    ports:
+      - "8090:8090"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+  learner-service:
+    image: sewnguyenp2206/image-service:latest
+    container_name: learner-service
+    ports:
+      - "8686:8686"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+  learningobjective-service:
+    image: sewnguyenp2206/learningobjective-service:latest
+    container_name: learningobjective-service
+    ports:
+      - "8089:8089"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+  notification-service:
+    image: sewnguyenp2206/notification-service:latest
+    container_name: notification-service
+    ports:
+      - "8099:8099"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+  section-service:
+    image: sewnguyenp2206/section-service:latest
+    container_name: section-service
+    ports:
+      - "8091:8091"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+
+  video-service:
+    image: sewnguyenp2206/video-service:latest
+    container_name: video-service
+    ports:
+      - "8991:8991"
+    environment:
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY= TRACE
+    depends_on:
+      - discovery-service
+    networks:
+      - backend
+
+
+
+networks:
+  backend:
+    external:
+      name: arthub-app-network
+
+volumes:
+  accountDBVolumn:
