@@ -1,1 +1,4 @@
 
+[submodule "learner-service"]
+	path = learner-service
+	url = https://github.com/SewNguyenP2206/learner-service.git
